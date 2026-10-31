@@ -1,0 +1,65 @@
+name: Build
+
+# Push a tag like v1.0.0 (or publish a release with a new tag) to build the
+# exe and attach it to the GitHub release. "Run workflow" builds a test copy.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tools
+        run: python -m pip install --upgrade pip pyinstaller==6.11.1
+
+      - name: Set version from tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          $v = "${{ github.ref_name }}".TrimStart('v')
+          Set-Content -Path bridge/version.py -Value "__version__ = `"$v`""
+
+      - name: Run tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Fetch SimConnect.dll
+        shell: pwsh
+        run: |
+          python -m pip download --no-deps SimConnect==0.4.26 -d dl
+          $whl = (Get-ChildItem dl\*.whl)[0].FullName
+          python -m zipfile -e $whl dl\x
+          Copy-Item dl\x\SimConnect\SimConnect.dll .
+
+      - name: Build exe
+        run: pyinstaller --noconfirm --onefile --windowed --name BrunnerFenixBridge --add-binary "SimConnect.dll;." main.py
+
+      - name: Checksum
+        shell: pwsh
+        run: |
+          $h = (Get-FileHash dist\BrunnerFenixBridge.exe -Algorithm SHA256).Hash.ToLower()
+          Set-Content -NoNewline -Path dist\BrunnerFenixBridge.exe.sha256 -Value $h
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BrunnerFenixBridge
+          path: dist/*
+
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/BrunnerFenixBridge.exe
+            dist/BrunnerFenixBridge.exe.sha256
+          generate_release_notes: true
