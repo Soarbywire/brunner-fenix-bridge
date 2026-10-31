@@ -172,7 +172,9 @@ pyinstaller --onefile --windowed --name BrunnerFenixBridge --version-file versio
 
 ## Releasing a new version
 
-Publish a release on GitHub with a new tag such as `v1.1.0` (or push the tag). The **Build** workflow runs the tests, builds `BrunnerFenixBridge.exe`, and attaches it and its checksum to the release. Installed copies will then offer the update.
+Publish a release on GitHub with a new, higher tag such as `v1.0.1` or `1.1`. The **Build** workflow runs the tests, builds `BrunnerFenixBridge.exe`, and attaches it and its checksum to the release. Installed copies will then offer the update.
+
+To build (or rebuild) an existing release, open **Actions > Build > Run workflow** and enter its tag in **Release tag**. Leave the box empty for a test build, which you can download from the run's **Artifacts**.
 
 ## License
 

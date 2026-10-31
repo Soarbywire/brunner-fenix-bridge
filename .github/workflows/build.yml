@@ -1,11 +1,17 @@
 name: Build
 
-# Push a tag like v1.0.0 (or publish a release with a new tag) to build the
-# exe and attach it to the GitHub release. "Run workflow" builds a test copy.
+# Publishing a release (any new tag, e.g. v1.0.1 or 1.1) builds the exe and
+# attaches it to that release. "Run workflow" builds a test copy, or, with a
+# release tag filled in, builds that release and attaches the exe to it.
 on:
   push:
-    tags: ["v*"]
+    tags: ["*"]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to build and attach to (e.g. 1.0). Leave empty for a test build."
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -13,8 +19,12 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
+    env:
+      TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'push' && github.ref || inputs.tag || github.ref }}
 
       - uses: actions/setup-python@v5
         with:
@@ -30,10 +40,10 @@ jobs:
           python -m pip install --no-binary pyinstaller pyinstaller==6.11.1
 
       - name: Set version from tag
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: env.TAG != ''
         shell: pwsh
         run: |
-          $v = "${{ github.ref_name }}".TrimStart('v')
+          $v = "$env:TAG".TrimStart('v', 'V')
           Set-Content -Path bridge/version.py -Value "__version__ = `"$v`""
 
       - name: Run tests
@@ -65,9 +75,10 @@ jobs:
           path: dist/*
 
       - name: Attach to release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: env.TAG != ''
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.TAG }}
           files: |
             dist/BrunnerFenixBridge.exe
             dist/BrunnerFenixBridge.exe.sha256
