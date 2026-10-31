@@ -10,7 +10,7 @@ import tkinter as tk
 import webbrowser
 from tkinter import messagebox, ttk
 
-from . import APP_NAME, GITHUB_REPO, __version__, updater
+from . import APP_ID, APP_NAME, GITHUB_REPO, __version__, startup, updater
 from .config import load_settings, settings_dir, settings_path
 from .engine import Engine
 from .logic import format_trim
@@ -22,8 +22,9 @@ GREEN, AMBER, GREY = "#1f9d55", "#c27c0e", "#777777"
 
 
 class App:
-    def __init__(self, root: tk.Tk):
+    def __init__(self, root: tk.Tk, auto: bool = False, minimised: bool = False):
         self.root = root
+        self.auto = auto  # launched by MSFS: close when MSFS closes
         self.settings = load_settings()
         self.engine = Engine(self.settings)
         self.update_info = None
@@ -32,6 +33,9 @@ class App:
         root.resizable(False, False)
         root.protocol("WM_DELETE_WINDOW", self.quit)
         self._build()
+        if auto or minimised:
+            root.iconify()
+        startup.refresh_paths()
         self.engine.start()
         self.root.after(REFRESH_MS, self.refresh)
         if self.settings.check_updates_on_start:
@@ -67,8 +71,23 @@ class App:
         self.v_db = self._row(live, 5, "Deadband")
         self.v_fps = self._row(live, 6, "Updates per second")
 
+        opts = ttk.LabelFrame(f, text="Start automatically", padding=6)
+        opts.grid(row=3, column=0, sticky="ew", pady=(8, 0))
+        self.var_msfs = tk.BooleanVar(value=startup.msfs_enabled())
+        self.var_windows = tk.BooleanVar(value=startup.windows_enabled())
+        can = startup.exe_path() is not None
+        cb1 = ttk.Checkbutton(opts, text="With MSFS (recommended): opens minimised, closes with the sim",
+                              variable=self.var_msfs, command=self.toggle_msfs)
+        cb2 = ttk.Checkbutton(opts, text="With Windows: opens minimised at sign-in",
+                              variable=self.var_windows, command=self.toggle_windows)
+        cb1.grid(row=0, column=0, sticky="w")
+        cb2.grid(row=1, column=0, sticky="w")
+        if not can:
+            cb1.state(["disabled"])
+            cb2.state(["disabled"])
+
         btns = ttk.Frame(f)
-        btns.grid(row=3, column=0, pady=(10, 0), sticky="ew")
+        btns.grid(row=4, column=0, pady=(10, 0), sticky="ew")
         ttk.Button(btns, text="Edit settings", command=self.edit_settings).pack(side="left")
         ttk.Button(btns, text="Reload settings", command=self.reload_settings).pack(side="left", padx=4)
         ttk.Button(btns, text="Check for updates",
@@ -87,6 +106,10 @@ class App:
 
     # ------------------------------------------------------------------
     def refresh(self):
+        if self.auto and self.engine.msfs_closed.is_set():
+            log.info("MSFS closed; exiting (started with MSFS)")
+            self.quit()
+            return
         st = self.engine.snapshot()
         self.v_conn.set(st.message)
         self.v_conn.label.configure(foreground=GREEN if st.connected else AMBER)
@@ -114,6 +137,27 @@ class App:
     @staticmethod
     def _short(path, n=44):
         return path if len(path) <= n else "..." + path[-(n - 3):]
+
+    # --- Auto-start ------------------------------------------------------
+    def toggle_msfs(self):
+        want = self.var_msfs.get()
+        exe = startup.exe_path()
+        try:
+            if want and not startup.msfs_folders():
+                raise RuntimeError("Couldn't find an MSFS 2024 or 2020 installation folder.")
+            files = startup.set_msfs(want, exe)
+            log.info("Start with MSFS %s: %s", want, files)
+        except Exception as e:
+            self.var_msfs.set(not want)
+            messagebox.showerror(APP_NAME, f"Could not change MSFS auto-start.\n{e}")
+
+    def toggle_windows(self):
+        want = self.var_windows.get()
+        try:
+            startup.set_windows(want, startup.exe_path())
+        except Exception as e:
+            self.var_windows.set(not want)
+            messagebox.showerror(APP_NAME, f"Could not change Windows auto-start.\n{e}")
 
     # --- Settings --------------------------------------------------------
     def edit_settings(self):
@@ -197,9 +241,34 @@ def setup_logging():
     )
 
 
+_mutex = None
+
+
+def already_running() -> bool:
+    """Single instance: a second copy would also send rudder input."""
+    global _mutex
+    if sys.platform != "win32":
+        return False
+    import ctypes
+    k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    k32.CreateMutexW.restype = ctypes.c_void_p
+    _mutex = k32.CreateMutexW(None, False, f"Local\\{APP_ID}")
+    return ctypes.get_last_error() == 183  # ERROR_ALREADY_EXISTS
+
+
 def main():
     setup_logging()
-    log.info("%s %s starting", APP_NAME, __version__)
+    auto = startup.AUTO_ARG in sys.argv
+    minimised = startup.MINIMISED_ARG in sys.argv
+    log.info("%s %s starting %s", APP_NAME, __version__, sys.argv[1:])
+    if already_running():
+        log.info("Already running; exiting")
+        if not (auto or minimised):
+            r = tk.Tk()
+            r.withdraw()
+            messagebox.showinfo(APP_NAME, f"{APP_NAME} is already running.")
+            r.destroy()
+        return
     root = tk.Tk()
-    App(root)
+    App(root, auto=auto, minimised=minimised)
     root.mainloop()

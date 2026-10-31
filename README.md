@@ -32,6 +32,15 @@ The Fenix doesn't use MSFS's standard rudder trim, so SimUX's built-in trim foll
 
 Windows may warn that the app is from an unknown publisher. Click **More info > Run anyway**. Some antivirus programs flag apps packaged this way by mistake. The full source code is here, and every release is built automatically by GitHub from this source.
 
+### Start automatically
+
+Tick one of the boxes in the bridge window:
+
+- **With MSFS (recommended):** the bridge opens minimised when MSFS starts and closes when MSFS closes. It adds its own entry to MSFS's `exe.xml` launch list, the same file FSUIPC and other tools use. Other entries are left untouched, and the file is backed up as `exe.xml.BrunnerFenixBridge.bak` before the first change.
+- **With Windows:** the bridge opens minimised when you sign in and waits for MSFS.
+
+Only one copy runs at a time, so ticking both is harmless. If you move the .exe, start it once from the new place and the entries update themselves.
+
 The app checks for updates when it starts. When a new version is available, a banner appears. Click **Install** and it downloads, verifies and restarts itself.
 
 ## Required SimUX settings

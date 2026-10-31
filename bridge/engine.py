@@ -42,6 +42,7 @@ class Engine:
         self._frame_count = 0
         self._fps_t = time.perf_counter()
         self._reconnect = threading.Event()
+        self.msfs_closed = threading.Event()   # set when MSFS closes after a connection
 
     # ------------------------------------------------------------------
     def start(self):
@@ -124,12 +125,14 @@ class Engine:
             except Exception as e:
                 log.exception("SimConnect error")
                 self._drop_connection(f"Connection lost ({e})")
+                self.msfs_closed.set()
         self._drop_connection("Stopped")
 
     # --- SimConnect callbacks ------------------------------------------
     def on_quit(self):
         self._sc = None
         self._set(connected=False, message="MSFS closed, waiting...", mode="Idle")
+        self.msfs_closed.set()
 
     def on_aircraft(self, path: str):
         log.info("Aircraft loaded: %s", path)
