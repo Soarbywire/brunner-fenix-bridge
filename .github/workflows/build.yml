@@ -69,6 +69,14 @@ jobs:
           $h = (Get-FileHash dist\BrunnerFenixBridge.exe -Algorithm SHA256).Hash.ToLower()
           Set-Content -NoNewline -Path dist\BrunnerFenixBridge.exe.sha256 -Value $h
 
+      - name: Package zip (exe + README + LICENSE)
+        shell: pwsh
+        run: |
+          $v = if ($env:TAG) { "$env:TAG".TrimStart('v', 'V') } else { "test" }
+          New-Item -ItemType Directory -Force pkg\BrunnerFenixBridge | Out-Null
+          Copy-Item dist\BrunnerFenixBridge.exe, README.md, LICENSE pkg\BrunnerFenixBridge\
+          Compress-Archive -Path pkg\BrunnerFenixBridge -DestinationPath "dist\BrunnerFenixBridge-$v.zip" -Force
+
       - uses: actions/upload-artifact@v4
         with:
           name: BrunnerFenixBridge
@@ -80,6 +88,7 @@ jobs:
         with:
           tag_name: ${{ env.TAG }}
           files: |
+            dist/BrunnerFenixBridge-*.zip
             dist/BrunnerFenixBridge.exe
             dist/BrunnerFenixBridge.exe.sha256
           generate_release_notes: true

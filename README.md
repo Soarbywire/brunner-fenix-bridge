@@ -29,8 +29,8 @@ The Fenix doesn't use MSFS's standard rudder trim, so SimUX's built-in trim foll
 
 ## Installation
 
-1. Download `BrunnerFenixBridge.exe` from the [latest release](https://github.com/Soarbywire/brunner-fenix-bridge/releases/latest).
-2. Put it anywhere you like, for example `Documents\BrunnerFenixBridge`, and run it. It connects to MSFS automatically, whether it's started before or after the sim.
+1. Download `BrunnerFenixBridge-<version>.zip` from the [latest release](https://github.com/Soarbywire/brunner-fenix-bridge/releases/latest). It contains the program, this README and the licence. (`BrunnerFenixBridge.exe` on its own is also there; it's the same program.)
+2. Unzip it anywhere you like, for example `Documents\BrunnerFenixBridge`, and run `BrunnerFenixBridge.exe`. It connects to MSFS automatically, whether it's started before or after the sim.
 
 Windows may warn that the app is from an unknown publisher. Click **More info > Run anyway**. Because the app is new and not code-signed, browsers and antivirus programs may occasionally flag it by mistake. The full source code is here, and every release is built automatically by GitHub from this source, so you can check exactly what it contains.
 
