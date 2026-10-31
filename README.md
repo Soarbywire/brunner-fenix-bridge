@@ -6,6 +6,8 @@ A small Windows app that makes Brunner force-feedback rudder pedals behave like 
 - Small autopilot trim adjustments are ignored, so the pedals stay still in normal AP flight.
 - Your pedal input is sent relative to the trimmed pedal position, so trim is never counted twice.
 
+Developed and tested with the **Brunner FFB-G rudder pedals** and SimUX. Other Brunner pedals that use SimUX should work the same way.
+
 It's the MSFS counterpart of [brunner-toliss-pedals](https://github.com/Soarbywire/brunner-toliss-pedals) for X-Plane.
 
 ## How it works
@@ -23,7 +25,7 @@ The Fenix doesn't use MSFS's standard rudder trim, so SimUX's built-in trim foll
 
 - Windows 10/11 and MSFS 2024 (MSFS 2020 should also work)
 - Fenix A320 (V3)
-- Brunner rudder pedals with SimUX
+- Brunner rudder pedals with SimUX (tested with the FFB-G rudder pedals)
 
 ## Installation
 
