@@ -40,6 +40,9 @@ class Settings:
     # MSFS's AXIS_RUDDER_SET runs opposite to the Fenix (tested: positive = left).
     # True flips the rudder sent to MSFS. Set to false if right pedal gives left rudder.
     invert_rudder_output: bool = True
+    # False: SimUX reports the pedal relative to the trimmed position (seen in MSFS).
+    # True: SimUX reports the absolute pedal position (as in X-Plane).
+    pedal_includes_trim: bool = False
 
     # --- Trim following (pedals) -----------------------------------------
     trim_friction: float = 0.013       # breakout before pedals move (~0.4 deg)
@@ -53,7 +56,7 @@ class Settings:
     fenix_input_gain: float = 1.0      # how much of the sent rudder shows up in N_FC_RUDDER
 
     # --- Pilot input (rudder) --------------------------------------------
-    rest_deadband: float = 0.015       # deadband when the pedals are settled
+    rest_deadband: float = 0.03        # deadband when the pedals are settled
     motion_deadband: float = 0.10      # deadband while the motor is moving the pedals
     deadband_decay: float = 0.3        # how fast motion_deadband shrinks back (per s)
     rudder_smooth_tau: float = 0.033   # rudder output smoothing (s)
@@ -71,20 +74,45 @@ def settings_path() -> str:
     return os.path.join(settings_dir(), "settings.json")
 
 
+# Defaults written by 1.0.0 test builds, which kept no record of their defaults.
+LEGACY_DEFAULTS = {"rest_deadband": 0.015}
+
+
+def _defaults_path(path: str) -> str:
+    return os.path.join(os.path.dirname(path), "defaults.json")
+
+
 def load_settings(path: str | None = None) -> Settings:
+    """Load settings. Any value the user never changed follows new defaults:
+    defaults.json records the defaults last written, so a stored value equal
+    to its old default is upgraded when the default changes."""
     path = path or settings_path()
     s = Settings()
+    current = asdict(s)
     if os.path.exists(path):
         try:
             with open(path, "r", encoding="utf-8") as f:
                 data = json.load(f)
-            known = {f.name for f in fields(Settings)}
+            try:
+                with open(_defaults_path(path), "r", encoding="utf-8") as f:
+                    previous = json.load(f)
+            except Exception:
+                previous = dict(LEGACY_DEFAULTS)
             for k, v in data.items():
-                if k in known:
-                    setattr(s, k, v)
+                if k not in current:
+                    continue
+                if k in previous and v == previous[k] and current[k] != previous[k]:
+                    log.info("Setting %s: default changed %r -> %r", k, v, current[k])
+                    continue  # user never changed it: take the new default
+                setattr(s, k, v)
         except Exception:
             log.exception("Could not read settings from %s, using defaults", path)
-    save_settings(s, path)  # writes any new defaults back to the file
+    save_settings(s, path)  # writes any new settings back to the file
+    try:
+        with open(_defaults_path(path), "w", encoding="utf-8") as f:
+            json.dump(current, f, indent=2)
+    except Exception:
+        log.exception("Could not save defaults record")
     return s
 
 

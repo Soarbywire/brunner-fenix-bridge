@@ -126,7 +126,9 @@ class RudderBridge:
             self.deadband = max(s.rest_deadband, self.deadband - s.deadband_decay * dt)
 
         # --- 5. Pilot input relative to the trimmed pedal position ---------
-        diff = pedal - trim_out
+        # SimUX in MSFS reports the pedal relative to its trim position already;
+        # in X-Plane it reported the absolute position.
+        diff = pedal - trim_out if s.pedal_includes_trim else pedal
         if diff > self.deadband:
             diff -= self.deadband
         elif diff < -self.deadband:
