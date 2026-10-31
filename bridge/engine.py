@@ -177,7 +177,7 @@ class Engine:
             self._last_trim_sent = trim
         if rudder is not None:
             if resend or self._last_rudder_sent is None or abs(rudder - self._last_rudder_sent) > 1 / 16383:
-                sc.set_rudder(rudder)
+                sc.set_rudder(-rudder if self.settings.invert_rudder_output else rudder)
                 self._last_rudder_sent = rudder
         if resend:
             self._last_send_t = now

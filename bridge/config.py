@@ -37,6 +37,9 @@ class Settings:
     # True if SimUX's pedal direction is opposite to the Fenix's (right = positive).
     # Flips both the pedal position read and the trim position sent to SimUX.
     invert_pedal: bool = False
+    # MSFS's AXIS_RUDDER_SET runs opposite to the Fenix (tested: positive = left).
+    # True flips the rudder sent to MSFS. Set to false if right pedal gives left rudder.
+    invert_rudder_output: bool = True
 
     # --- Trim following (pedals) -----------------------------------------
     trim_friction: float = 0.013       # breakout before pedals move (~0.4 deg)

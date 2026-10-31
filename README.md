@@ -107,7 +107,7 @@ With the Fenix loaded and your feet off the pedals:
 3. Press RESET. The pedals return to centre.
 4. Press a pedal. **Rudder to MSFS** follows, and the trim line doesn't change.
 
-If pressing a pedal right makes the rudder go left, or the pedals move the wrong way when you trim, set `invert_pedal` to `true` (see below).
+If pressing the right pedal makes **Fenix pedals** go negative (left rudder), flip `invert_rudder_output`. If the pedals move the wrong way when you trim, set `invert_pedal` to `true` (see below).
 
 ## Settings
 
@@ -122,6 +122,7 @@ Click **Edit settings** to open `%APPDATA%\BrunnerFenixBridge\settings.json` in 
 | `force_active` | `false` | Act as if a Fenix is always loaded |
 | `passthrough_other_aircraft` | `false` | In other aircraft, send the pedals straight through as rudder. Leave off if SimUX handles rudder in other aircraft. |
 | `invert_pedal` | `false` | Flip the pedal direction, if SimUX's is opposite to the Fenix's |
+| `invert_rudder_output` | `true` | Flip the rudder sent to MSFS. MSFS's rudder command runs opposite to the Fenix, so this is on by default. |
 | `hw_scale` | `1.0` | Trim units to pedal units. Adjust if the pedals settle short of or past the trim position. |
 | `trim_friction` | `0.013` | Trim change (about 0.4°) before the pedals start to move |
 | `settle_time` | `0.5` | Seconds the trim must be still before the friction locks in again |

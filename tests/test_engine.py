@@ -32,6 +32,17 @@ class FakeSC:
 
 
 class TestEngine(unittest.TestCase):
+    def test_rudder_output_not_inverted_when_disabled(self):
+        e, sc = self.make(invert_rudder_output=False)
+        try:
+            e.on_aircraft("FNX_32X")
+            for _ in range(30):
+                e.on_inputs(0.0, 0.4)
+                time.sleep(0.005)
+            self.assertGreater(sc.rudders[-1], 0.3)
+        finally:
+            e.stop()
+
     def make(self, **kw):
         s = Settings(**kw)
         holder = {}
@@ -56,7 +67,7 @@ class TestEngine(unittest.TestCase):
                 time.sleep(0.005)
             st = e.snapshot()
             self.assertEqual(st.mode, "Fenix")
-            self.assertGreater(sc.rudders[-1], 0.3)
+            self.assertLess(sc.rudders[-1], -0.3, "right pedal is sent as negative AXIS_RUDDER_SET")
             self.assertAlmostEqual(sc.trims[-1], 0.0, places=3)
         finally:
             e.stop()
@@ -78,7 +89,7 @@ class TestEngine(unittest.TestCase):
             e.on_aircraft(r"SimObjects\Airplanes\Asobo_C172\aircraft.cfg")
             e.on_inputs(0.0, 0.5)
             self.assertEqual(e.snapshot().mode, "Passthrough")
-            self.assertAlmostEqual(sc.rudders[-1], 0.5)
+            self.assertAlmostEqual(sc.rudders[-1], -0.5)
         finally:
             e.stop()
 
