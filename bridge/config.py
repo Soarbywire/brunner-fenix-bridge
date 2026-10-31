@@ -40,9 +40,9 @@ class Settings:
     # MSFS's AXIS_RUDDER_SET runs opposite to the Fenix (tested: positive = left).
     # True flips the rudder sent to MSFS. Set to false if right pedal gives left rudder.
     invert_rudder_output: bool = True
-    # False: SimUX reports the pedal relative to the trimmed position (seen in MSFS).
-    # True: SimUX reports the absolute pedal position (as in X-Plane).
-    pedal_includes_trim: bool = False
+    # True: SimUX reports the absolute pedal position (tested in MSFS and X-Plane).
+    # False: SimUX reports the pedal relative to the trimmed position.
+    pedal_includes_trim: bool = True
 
     # --- Trim following (pedals) -----------------------------------------
     trim_friction: float = 0.013       # breakout before pedals move (~0.4 deg)

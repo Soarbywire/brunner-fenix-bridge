@@ -95,7 +95,7 @@ Note: the bridge needs to be running for rudder to work in the Fenix.
 | Fenix rudder trim | The trim the bridge has worked out, like the pedestal display (e.g. "L 5.0") |
 | Fenix pedals | Raw `L:N_FC_RUDDER` |
 | Trim to pedals | Position sent to SimUX |
-| Pedal position | Pedal position from SimUX, relative to the trimmed position. Near 0 with your feet off. |
+| Pedal position | Physical pedal position from SimUX. With your feet off it settles close to **Trim to pedals**. |
 | Rudder to MSFS | Your input relative to trim |
 
 ### First flight check
@@ -122,7 +122,7 @@ Click **Edit settings** to open `%APPDATA%\BrunnerFenixBridge\settings.json` in 
 | `force_active` | `false` | Act as if a Fenix is always loaded |
 | `passthrough_other_aircraft` | `false` | In other aircraft, send the pedals straight through as rudder. Leave off if SimUX handles rudder in other aircraft. |
 | `invert_pedal` | `false` | Flip the pedal direction, if SimUX's is opposite to the Fenix's |
-| `pedal_includes_trim` | `false` | `false`: SimUX reports the pedal relative to the trimmed position (as seen in MSFS). `true`: SimUX reports the absolute position. If **Pedal position** reads about the same as **Trim to pedals** with your feet off, set this to `true`. |
+| `pedal_includes_trim` | `true` | `true`: SimUX reports the absolute pedal position (the normal case). `false`: SimUX reports it relative to the trimmed position. Only change this if **Pedal position** stays near 0 while the pedals are trimmed. |
 | `invert_rudder_output` | `true` | Flip the rudder sent to MSFS. MSFS's rudder command runs opposite to the Fenix, so this is on by default. |
 | `hw_scale` | `1.0` | Trim units to pedal units. Adjust if the pedals settle short of or past the trim position. |
 | `trim_friction` | `0.013` | Trim change (about 0.4°) before the pedals start to move |

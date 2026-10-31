@@ -67,7 +67,7 @@ def run(bridge, plant, seconds, each=None):
 
 
 class TestBridge(unittest.TestCase):
-    ABSOLUTE = False  # SimUX pedal reading: relative to trim (MSFS) or absolute
+    ABSOLUTE = True  # SimUX pedal reading: absolute (tested) or relative to trim
 
     def setUp(self):
         self.s = Settings(pedal_includes_trim=self.ABSOLUTE)
@@ -200,14 +200,22 @@ class TestBridge(unittest.TestCase):
         self.assertLess(max(during) - min(during), 0.02, "pedal centre steady while pilot moves")
 
     def test_user_report_trim_l5_feet_off(self):
-        """Screenshot: trim L 5, SimUX pedal -0.0227 relative, bridge sent +0.134 rudder."""
-        if self.ABSOLUTE:
-            self.skipTest("relative-reading case")
+        """MSFS test: trim L 5, pedals settled at -0.1631 (absolute), N_FC_RUDDER -168."""
+        if not self.ABSOLUTE:
+            self.skipTest("absolute-reading case")
         b = RudderBridge(self.s)
-        for _ in range(int(5 / DT)):
-            r = b.step(DT, -166.0, -0.0227)
+        for _ in range(int(10 / DT)):
+            r = b.step(DT, -168.0, -0.1631)
         self.assertEqual(format_trim(r.trim_degrees), "L 5.0")
-        self.assertEqual(r.rudder_out, 0.0, "motor holding error must not read as rudder")
+        self.assertAlmostEqual(r.trim_out, -0.168, delta=0.002)
+        self.assertEqual(r.rudder_out, 0.0, "settled pedals must not read as rudder")
+
+    def test_start_while_holding_pedal(self):
+        b = RudderBridge(self.s)
+        for _ in range(int(3 / DT)):
+            r = b.step(DT, 0.0, 0.4)  # pilot holding right pedal as the bridge starts
+        self.assertLess(abs(b.mech_trim), 0.005, "held pedal is not taken as trim")
+        self.assertGreater(r.rudder_out, 0.3)
 
     def test_invert_pedal(self):
         self.s.invert_pedal = True
@@ -222,9 +230,9 @@ class TestBridge(unittest.TestCase):
         self.assertLess(abs(r.rudder_out), 0.005)
 
 
-class TestBridgeAbsolutePedal(TestBridge):
-    """Same checks with SimUX reporting the absolute pedal position (X-Plane style)."""
-    ABSOLUTE = True
+class TestBridgeRelativePedal(TestBridge):
+    """Same checks with SimUX reporting the pedal relative to the trimmed position."""
+    ABSOLUTE = False
 
 
 class TestFormat(unittest.TestCase):

@@ -84,11 +84,19 @@ class RudderBridge:
             estimate_valid = True
 
         if not self.initialised:
-            # Pedals start centred and glide to the first estimate.
+            # Start from where the pedals physically are (they may already be
+            # trimmed, e.g. after restarting the bridge) and glide from there.
+            # Only when the physical pedals agree with the Fenix's cockpit pedals;
+            # otherwise the pilot may be holding a pedal, so start centred.
+            start = 0.0
+            if s.pedal_includes_trim and s.hw_scale:
+                physical = pedal / s.hw_scale
+                if abs(physical - n) < 0.05:
+                    start = clamp(physical, -s.trim_limit, s.trim_limit)
             self.est_filtered = self.trim_estimate
             self.still_anchor = self.trim_estimate
-            self.committed_trim = 0.0
-            self.mech_trim = 0.0
+            self.committed_trim = start
+            self.mech_trim = start
             self.initialised = True
         else:
             a = 1.0 - math.exp(-dt / s.estimate_smooth_tau) if s.estimate_smooth_tau > 0 else 1.0
