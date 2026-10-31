@@ -127,6 +127,7 @@ Click **Edit settings** to open `%APPDATA%\BrunnerFenixBridge\settings.json` in 
 | `trim_friction` | `0.013` | Trim change (about 0.4°) before the pedals start to move |
 | `settle_time` | `0.5` | Seconds the trim must be still before the friction locks in again |
 | `trim_slew_rate` | `0.10` | Maximum pedal speed when following trim |
+| `estimate_input_limit` | `0.05` | The trim is only worked out while your rudder input is smaller than this, so a held pedal never reads as trim |
 | `rest_deadband` | `0.015` | Rudder deadband when the pedals are settled. Raise to 0.03 if you get phantom rudder. |
 | `motion_deadband` | `0.10` | Rudder deadband while the motor is moving the pedals |
 | `check_updates_on_start` | `true` | Check GitHub for a new version at start-up |

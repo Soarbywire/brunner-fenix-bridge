@@ -49,6 +49,8 @@ class Settings:
     trim_slew_rate: float = 0.10       # max pedal travel speed following trim (units/s)
     input_settle_time: float = 0.25    # s rudder input must be steady to update trim estimate
     input_steady_band: float = 0.01    # how much rudder input may wobble and still be "steady"
+    estimate_input_limit: float = 0.05 # trim is only worked out while rudder input is below this
+    fenix_input_gain: float = 1.0      # how much of the sent rudder shows up in N_FC_RUDDER
 
     # --- Pilot input (rudder) --------------------------------------------
     rest_deadband: float = 0.015       # deadband when the pedals are settled

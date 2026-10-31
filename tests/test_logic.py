@@ -19,7 +19,7 @@ DEG = 1 / 30  # one degree of trim in full-pedal units
 class Plant:
     """Simulated Fenix + SimUX + Brunner pedals, with latency and motor lag."""
 
-    def __init__(self, fenix_trim=0.0, latency_frames=3, motor_tau=0.08, seed=1, fenix_tau=0.0):
+    def __init__(self, fenix_trim=0.0, latency_frames=3, motor_tau=0.08, seed=1, fenix_tau=0.0, gain=0.8):
         self.fenix_trim = fenix_trim
         self.axis_queue = deque([0.0] * latency_frames)   # bridge -> Fenix
         self.trim_queue = deque([0.0] * 2)                # bridge -> SimUX -> motor
@@ -30,6 +30,7 @@ class Plant:
         self.noise = random.Random(seed)
         self.axis_now = 0.0
         self.fenix_tau = fenix_tau   # Fenix smoothing of the pedal animation
+        self.gain = gain             # measured: Fenix shows ~80% of the rudder sent
 
     def outputs(self):
         """What the bridge reads this frame: (N_FC_RUDDER, pedal)."""
@@ -43,7 +44,7 @@ class Plant:
         self.axis_queue.append(rudder_out)
         a = self.axis_queue.popleft()
         k = 1 - math.exp(-dt / self.fenix_tau) if self.fenix_tau else 1.0
-        self.axis_now += (a - self.axis_now) * k
+        self.axis_now += (a * self.gain - self.axis_now) * k
         self.trim_queue.append(trim_out)
         target = self.trim_queue.popleft()
         self.motor += (target - self.motor) * (1 - math.exp(-dt / self.motor_tau))
@@ -105,7 +106,7 @@ class TestBridge(unittest.TestCase):
         t, n, pedal, r, total = log[-1]
         self.assertAlmostEqual(r.rudder_out, 0.3 - self.s.rest_deadband, delta=0.01)
         self.assertAlmostEqual(self.b.mech_trim, -5 * DEG, delta=0.01, msg="trim position held while pilot pushes")
-        self.assertAlmostEqual(total, -5 * DEG + 0.3 - self.s.rest_deadband, delta=0.015)
+        self.assertAlmostEqual(total, -5 * DEG + p.gain * (0.3 - self.s.rest_deadband), delta=0.015)
 
     def test_taxi_wiggle_keeps_pedals_centred(self):
         p = Plant()
@@ -153,15 +154,28 @@ class TestBridge(unittest.TestCase):
         p = Plant()
 
         def seq(t, pl):
-            pl.pilot = 0.25 if t >= 1 else 0.0          # hold right rudder
+            pl.pilot = 0.25 if 1 <= t < 12 else 0.0     # hold right rudder, then relax
             pl.knob = 1 if 3 <= t < 8 else 0             # trim R 5 while holding it
-            if t >= 12:
-                pl.pilot = 0.25 - 5 * DEG                # relax as the trim takes the load
         log = run(self.b, p, 20, seq)
+        held = [x[3].trim_out for x in log if 2 <= x[0] < 12]
+        self.assertLess(max(held) - min(held), 0.002, "held pedal never reads as trim")
         t, n, pedal, r, total = log[-1]
-        self.assertAlmostEqual(self.b.mech_trim, 5 * DEG, delta=0.01, msg="pedals follow trim while held")
-        self.assertAlmostEqual(total, 0.25 - self.s.rest_deadband, delta=0.02,
-                               msg="total rudder unchanged as the pilot relaxes onto the trim")
+        self.assertAlmostEqual(self.b.mech_trim, 5 * DEG, delta=0.01, msg="pedals go to the trim once relaxed")
+        self.assertLess(abs(r.rudder_out), 0.005)
+        self.assertAlmostEqual(total, 5 * DEG, delta=0.01)
+
+    def test_held_pedal_does_not_read_as_trim(self):
+        """User report: full right pedal showed trim L 5.3, full left R 3.2."""
+        for push in (0.98, -0.98, 0.5, -0.5):
+            b = RudderBridge(self.s)
+            p = Plant()
+
+            def seq(t, pl, push=push):
+                pl.pilot = push if t >= 2 else 0.0
+            log = run(b, p, 8, seq)
+            worst = max(abs(x[3].trim_degrees) for x in log)
+            self.assertLess(worst, 0.3, f"pedal {push:+} must not show as trim")
+            self.assertLess(abs(b.mech_trim), 0.005)
 
     def test_slow_laggy_fenix(self):
         p = Plant(fenix_trim=-4 * DEG, latency_frames=8, fenix_tau=0.15)

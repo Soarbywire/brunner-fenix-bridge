@@ -74,8 +74,12 @@ class RudderBridge:
             self.steady_time += dt
 
         estimate_valid = False
-        if self.steady_time >= s.input_settle_time and abs(n) < 0.95:
-            raw = clamp(n - self.last_rudder_sent, -s.trim_limit, s.trim_limit)
+        # Only while the pilot's input is small: the Fenix doesn't pass rudder
+        # input through 1:1, so a held pedal would otherwise read as trim.
+        if (self.steady_time >= s.input_settle_time and abs(n) < 0.95
+                and abs(self.last_rudder_sent) <= s.estimate_input_limit):
+            raw = clamp(n - s.fenix_input_gain * self.last_rudder_sent,
+                        -s.trim_limit, s.trim_limit)
             self.trim_estimate = raw
             estimate_valid = True
 
