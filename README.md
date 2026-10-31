@@ -53,13 +53,15 @@ Any deadzone stops the pedals reporting their true position near centre. The bri
 
 ### 2. Trim settings
 
-In **Rudder > List of Effects > Trim**, enable the Trim effect and set:
+In **Profile Editor > Effects**, select the **Rudder** device, then **List of Effects > Trim**. Enable the Trim effect and set:
 
 | Setting | Value |
 |---|---|
 | Read trim from simulation | On |
 | Write trim to simulation | **Off** |
 | Write trim to device | On |
+
+**Write trim to simulation must be Off.** When it's on, SimUX writes its trim back into MSFS's standard rudder trim, which fights the trim position the bridge sends, and the pedals don't move when you trim. It can also leave a stray MSFS rudder trim that adds to the Fenix's. If this happened before you turned it off, check that MSFS's own rudder trim is back at 0.
 
 ### 3. Mappings
 
@@ -74,7 +76,7 @@ Turn on **Show Advanced Settings** at the bottom of the screen and open the mapp
 | SimVar Unit | Ratio Signed |
 | SimData Key | `controls/rudder/trim/position` |
 
-**Output Mappings:** edit the mapping for the rudder actuator position (`controls/rudder/position`) so it publishes to the bridge instead of to MSFS:
+**Output Mappings:** edit the mapping for the rudder actuator position (`controls/rudder/position`) so it publishes to the bridge instead of to MSFS. In the default MSFS profile this mapping's SimVar is `L:input_rudder`. Change it rather than deleting it, since the rudder actuator needs an output mapping. Note the original value (`L:input_rudder`) so you can restore it, or keep these changes in a separate SimUX profile for the Fenix.
 
 | Field | Value |
 |---|---|
@@ -151,7 +153,7 @@ The log is at `%APPDATA%\BrunnerFenixBridge\bridge.log`.
 | "Waiting for MSFS..." | MSFS isn't running yet, or the sim is still loading. |
 | Mode stays Idle in the Fenix | The aircraft path doesn't contain "FNX" or "Fenix". Add part of the path shown to `aircraft_match`, or set `force_active` to `true`. |
 | Pedal position stays at 0.0000 | SimUX isn't publishing `L:BRUNNER_RAW_PEDAL`. Check the output mapping and restart SimUX. |
-| Trim line changes but the pedals don't move | SimUX isn't reading `L:BRUNNER_RUDDER_TRIM`. Check the input mapping, trim settings, and restart SimUX. |
+| Trim line changes but the pedals don't move | Usually **Write trim to simulation** is still on in SimUX. Otherwise SimUX isn't reading `L:BRUNNER_RUDDER_TRIM`: check the input mapping, and restart SimUX. |
 | No rudder at all | The bridge isn't running, or the mode isn't Active. |
 | Rudder doubled or fighting | Something else is also sending rudder to MSFS. See section 4. |
 | Pedals twitch under AP | SimUX deadzone isn't 0%, or raise `rest_deadband`. |
