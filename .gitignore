@@ -5,3 +5,4 @@ dist/
 dl/
 *.spec
 SimConnect.dll
+version_info.txt

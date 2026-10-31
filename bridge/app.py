@@ -22,7 +22,7 @@ GREEN, AMBER, GREY = "#1f9d55", "#c27c0e", "#777777"
 
 
 class App:
-    def __init__(self, root: tk.Tk, auto: bool = False, minimised: bool = False):
+    def __init__(self, root: tk.Tk, auto: bool = False):
         self.root = root
         self.auto = auto  # launched by MSFS: close when MSFS closes
         self.settings = load_settings()
@@ -33,7 +33,7 @@ class App:
         root.resizable(False, False)
         root.protocol("WM_DELETE_WINDOW", self.quit)
         self._build()
-        if auto or minimised:
+        if auto:
             root.iconify()
         startup.refresh_paths()
         self.engine.start()
@@ -74,17 +74,12 @@ class App:
         opts = ttk.LabelFrame(f, text="Start automatically", padding=6)
         opts.grid(row=3, column=0, sticky="ew", pady=(8, 0))
         self.var_msfs = tk.BooleanVar(value=startup.msfs_enabled())
-        self.var_windows = tk.BooleanVar(value=startup.windows_enabled())
         can = startup.exe_path() is not None
-        cb1 = ttk.Checkbutton(opts, text="With MSFS (recommended): opens minimised, closes with the sim",
+        cb1 = ttk.Checkbutton(opts, text="With MSFS: opens minimised when the sim starts, closes with it",
                               variable=self.var_msfs, command=self.toggle_msfs)
-        cb2 = ttk.Checkbutton(opts, text="With Windows: opens minimised at sign-in",
-                              variable=self.var_windows, command=self.toggle_windows)
         cb1.grid(row=0, column=0, sticky="w")
-        cb2.grid(row=1, column=0, sticky="w")
         if not can:
             cb1.state(["disabled"])
-            cb2.state(["disabled"])
 
         btns = ttk.Frame(f)
         btns.grid(row=4, column=0, pady=(10, 0), sticky="ew")
@@ -150,14 +145,6 @@ class App:
         except Exception as e:
             self.var_msfs.set(not want)
             messagebox.showerror(APP_NAME, f"Could not change MSFS auto-start.\n{e}")
-
-    def toggle_windows(self):
-        want = self.var_windows.get()
-        try:
-            startup.set_windows(want, startup.exe_path())
-        except Exception as e:
-            self.var_windows.set(not want)
-            messagebox.showerror(APP_NAME, f"Could not change Windows auto-start.\n{e}")
 
     # --- Settings --------------------------------------------------------
     def edit_settings(self):
@@ -244,31 +231,43 @@ def setup_logging():
 _mutex = None
 
 
-def already_running() -> bool:
-    """Single instance: a second copy would also send rudder input."""
+def already_running(wait: float = 0.0) -> bool:
+    """Single instance: a second copy would also send rudder input.
+    wait: seconds to keep trying (after an update the old copy is closing)."""
     global _mutex
     if sys.platform != "win32":
         return False
     import ctypes
+    import time
     k32 = ctypes.WinDLL("kernel32", use_last_error=True)
     k32.CreateMutexW.restype = ctypes.c_void_p
-    _mutex = k32.CreateMutexW(None, False, f"Local\\{APP_ID}")
-    return ctypes.get_last_error() == 183  # ERROR_ALREADY_EXISTS
+    k32.CloseHandle.argtypes = [ctypes.c_void_p]
+    deadline = time.monotonic() + wait
+    while True:
+        _mutex = k32.CreateMutexW(None, False, f"Local\\{APP_ID}")
+        if ctypes.get_last_error() != 183:  # ERROR_ALREADY_EXISTS
+            return False
+        k32.CloseHandle(_mutex)
+        _mutex = None
+        if time.monotonic() >= deadline:
+            return True
+        time.sleep(0.5)
 
 
 def main():
     setup_logging()
     auto = startup.AUTO_ARG in sys.argv
-    minimised = startup.MINIMISED_ARG in sys.argv
     log.info("%s %s starting %s", APP_NAME, __version__, sys.argv[1:])
-    if already_running():
+    updated = updater.UPDATED_ARG in sys.argv
+    if already_running(wait=15.0 if updated else 0.0):
         log.info("Already running; exiting")
-        if not (auto or minimised):
+        if not (auto or updated):
             r = tk.Tk()
             r.withdraw()
             messagebox.showinfo(APP_NAME, f"{APP_NAME} is already running.")
             r.destroy()
         return
+    updater.cleanup_old()
     root = tk.Tk()
-    App(root, auto=auto, minimised=minimised)
+    App(root, auto=auto)
     root.mainloop()

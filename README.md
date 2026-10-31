@@ -32,16 +32,13 @@ The Fenix doesn't use MSFS's standard rudder trim, so SimUX's built-in trim foll
 1. Download `BrunnerFenixBridge.exe` from the [latest release](https://github.com/Soarbywire/brunner-fenix-bridge/releases/latest).
 2. Put it anywhere you like, for example `Documents\BrunnerFenixBridge`, and run it. It connects to MSFS automatically, whether it's started before or after the sim.
 
-Windows may warn that the app is from an unknown publisher. Click **More info > Run anyway**. Some antivirus programs flag apps packaged this way by mistake. The full source code is here, and every release is built automatically by GitHub from this source.
+Windows may warn that the app is from an unknown publisher. Click **More info > Run anyway**. Because the app is new and not code-signed, browsers and antivirus programs may occasionally flag it by mistake. The full source code is here, and every release is built automatically by GitHub from this source, so you can check exactly what it contains.
 
 ### Start automatically
 
-Tick one of the boxes in the bridge window:
+Tick **With MSFS** in the bridge window. The bridge then opens minimised when MSFS starts and closes when MSFS closes. It adds its own entry to MSFS's `exe.xml` launch list, the same file FSUIPC and other tools use. Other entries are left untouched, and the file is backed up as `exe.xml.BrunnerFenixBridge.bak` before the first change.
 
-- **With MSFS (recommended):** the bridge opens minimised when MSFS starts and closes when MSFS closes. It adds its own entry to MSFS's `exe.xml` launch list, the same file FSUIPC and other tools use. Other entries are left untouched, and the file is backed up as `exe.xml.BrunnerFenixBridge.bak` before the first change.
-- **With Windows:** the bridge opens minimised when you sign in and waits for MSFS.
-
-Only one copy runs at a time, so ticking both is harmless. If you move the .exe, start it once from the new place and the entries update themselves.
+Only one copy runs at a time. If you move the .exe, start it once from the new place and the entry updates itself.
 
 The app checks for updates when it starts. When a new version is available, a banner appears. Click **Install** and it downloads, verifies and restarts itself.
 
@@ -167,7 +164,8 @@ Python 3.12 on Windows:
 ```
 pip install pyinstaller
 python -m unittest discover -s tests
-pyinstaller --onefile --windowed --name BrunnerFenixBridge --add-binary "SimConnect.dll;." main.py
+python tools/make_version_file.py version_info.txt
+pyinstaller --onefile --windowed --name BrunnerFenixBridge --version-file version_info.txt --add-binary "SimConnect.dll;." main.py
 ```
 
 `SimConnect.dll` comes from the MSFS SDK. The build workflow takes it from the [SimConnect](https://pypi.org/project/SimConnect/) package on PyPI. You can also run `python main.py` directly with `SimConnect.dll` next to it.

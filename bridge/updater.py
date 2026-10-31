@@ -11,7 +11,6 @@ import os
 import re
 import subprocess
 import sys
-import tempfile
 import urllib.request
 from dataclasses import dataclass
 
@@ -116,22 +115,33 @@ def download_update(info: UpdateInfo, progress=None) -> str:
     return new_path
 
 
+UPDATED_ARG = "--updated"
+
+
 def install_and_restart(new_path: str) -> None:
-    """Swap the exe once this process exits, then start the new version."""
+    """Swap in the new exe and start it. Windows allows renaming a running
+    exe, so: running exe -> .old, new exe -> original name, start it.
+    The .old file is removed by cleanup_old() on the next start."""
     exe = sys.executable
-    pid = os.getpid()
-    script = os.path.join(tempfile.gettempdir(), f"{APP_ID}_update.cmd")
-    with open(script, "w", encoding="ascii") as f:
-        f.write(f"""@echo off
-:wait
-tasklist /FI "PID eq {pid}" 2>NUL | find "{pid}" >NUL
-if not errorlevel 1 (
-  timeout /t 1 /nobreak >NUL
-  goto wait
-)
-move /Y "{new_path}" "{exe}" >NUL
-start "" "{exe}"
-del "%~f0"
-""")
-    flags = 0x08000000  # CREATE_NO_WINDOW
-    subprocess.Popen(["cmd", "/c", script], creationflags=flags, close_fds=True)
+    old = exe + ".old"
+    if os.path.exists(old):
+        os.remove(old)
+    os.replace(exe, old)
+    try:
+        os.replace(new_path, exe)
+    except Exception:
+        os.replace(old, exe)  # put the running version back
+        raise
+    subprocess.Popen([exe, UPDATED_ARG], close_fds=True)
+
+
+def cleanup_old() -> None:
+    """Delete the previous version left behind by an update."""
+    if not can_self_update():
+        return
+    old = sys.executable + ".old"
+    try:
+        if os.path.exists(old):
+            os.remove(old)
+    except OSError:
+        log.info("Could not remove %s yet", old)

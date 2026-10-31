@@ -43,5 +43,39 @@ class TestCheck(unittest.TestCase):
             self.assertIsNone(updater.check_for_update())
 
 
+class TestInstall(unittest.TestCase):
+    def test_swap_and_restart(self):
+        import tempfile
+        d = tempfile.mkdtemp()
+        exe = os.path.join(d, "BrunnerFenixBridge.exe")
+        new = os.path.join(d, "BrunnerFenixBridge.new.exe")
+        open(exe, "w").write("old version")
+        open(new, "w").write("new version")
+        with mock.patch.object(updater.sys, "executable", exe), \
+             mock.patch.object(updater.subprocess, "Popen") as popen:
+            updater.install_and_restart(new)
+        self.assertEqual(open(exe).read(), "new version")
+        self.assertEqual(open(exe + ".old").read(), "old version")
+        self.assertFalse(os.path.exists(new))
+        popen.assert_called_once()
+        self.assertEqual(popen.call_args[0][0], [exe, updater.UPDATED_ARG])
+
+        with mock.patch.object(updater.sys, "executable", exe), \
+             mock.patch.object(updater, "can_self_update", return_value=True):
+            updater.cleanup_old()
+        self.assertFalse(os.path.exists(exe + ".old"))
+
+    def test_failed_swap_restores_running_exe(self):
+        import tempfile
+        d = tempfile.mkdtemp()
+        exe = os.path.join(d, "BrunnerFenixBridge.exe")
+        open(exe, "w").write("old version")
+        with mock.patch.object(updater.sys, "executable", exe), \
+             mock.patch.object(updater.subprocess, "Popen"):
+            with self.assertRaises(Exception):
+                updater.install_and_restart(os.path.join(d, "missing.exe"))
+        self.assertEqual(open(exe).read(), "old version")
+
+
 if __name__ == "__main__":
     unittest.main()

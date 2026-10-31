@@ -1,4 +1,4 @@
-"""Optional automatic start: with MSFS (exe.xml) or with Windows (Run key).
+"""Optional automatic start with MSFS (exe.xml).
 
 MSFS launches every enabled <Launch.Addon> in exe.xml when the sim starts.
 Only the bridge's own entry is ever added, updated or removed; other
@@ -17,8 +17,6 @@ from . import APP_NAME, APP_ID
 log = logging.getLogger(__name__)
 
 AUTO_ARG = "--auto"            # launched by MSFS: start minimised, close with MSFS
-MINIMISED_ARG = "--minimized"  # launched with Windows: start minimised
-RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 
 EXE_XML_TEMPLATE = """<?xml version="1.0" encoding="Windows-1252"?>
 <SimBase.Document Type="SimConnect" version="1,0">
@@ -116,31 +114,6 @@ def set_msfs(enabled: bool, exe: str, folders=None) -> list[str]:
     return changed
 
 
-# --- Windows (Run key) ----------------------------------------------------
-def windows_enabled() -> bool:
-    if sys.platform != "win32":
-        return False
-    import winreg
-    try:
-        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY) as k:
-            winreg.QueryValueEx(k, APP_ID)
-            return True
-    except OSError:
-        return False
-
-
-def set_windows(enabled: bool, exe: str) -> None:
-    import winreg
-    with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY, 0, winreg.KEY_SET_VALUE) as k:
-        if enabled:
-            winreg.SetValueEx(k, APP_ID, 0, winreg.REG_SZ, f'"{exe}" {MINIMISED_ARG}')
-        else:
-            try:
-                winreg.DeleteValue(k, APP_ID)
-            except FileNotFoundError:
-                pass
-
-
 def refresh_paths() -> None:
     """If the exe was moved or updated, point enabled entries at its current path."""
     exe = exe_path()
@@ -149,7 +122,5 @@ def refresh_paths() -> None:
     try:
         if msfs_enabled():
             set_msfs(True, exe)
-        if windows_enabled():
-            set_windows(True, exe)
     except Exception:
         log.exception("Could not refresh auto-start entries")
